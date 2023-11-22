@@ -344,7 +344,6 @@ class PCSAFT:
             :param eta: Reduced density
             :param x: Molar fraction
         """
-
         Z = self.compressibility(eta, T, x, num_sites, code, association)
         di = self.sigma * (1 - 0.12 * np.exp(-3 * (self.Ek / T)))
         ro = (6 / math.pi) * eta * (sum(x * self.mi * (di ** 3))) ** -1
@@ -442,6 +441,7 @@ class PCSAFT:
         cv       = cv_ideal+cv_res
         return cv
 
+
     def cp(self, eta, T, x, num_sites, code, association):
         """
         * Heat capacity at constant pressure
@@ -461,7 +461,8 @@ class PCSAFT:
 
         return cp
 
-    def speed_of_sound(self, molar_mass, eta, T, x, num_sites, code, association):
+
+    def speed_of_sound(self, molar_mass, P, T, x, num_sites, code, association):
         """
         Speed of sound
         :param molar_mass: molar mass
@@ -469,7 +470,8 @@ class PCSAFT:
         :param T: temperature
         :param x: molar fraction
         """
-        Mw = sum(x*molar_mass)
+        Mw               = sum(x*molar_mass)
+        eta              = self.roots(P,T,x,num_sites, code, association)
         dpdro            = self.dpdro(eta, T, x, num_sites, code, association)
         cp               = self.cp(eta, T, x, num_sites, code, association)
         cv               = self.cv(eta, T, x, num_sites, code, association)
@@ -479,6 +481,7 @@ class PCSAFT:
         print(f"Isocoric heat: {cv:.2f} J/mol*K")
         print(f"Isobaric heat: {cp:.2f} J/mol*K")
         print(f"Speed of sound: {u:.2f} m/s")
+
 
     def d2pdro2(self, eta, T, x, num_sites, code, association):
 
@@ -501,7 +504,91 @@ class PCSAFT:
 
             :param Po: Pressure of system
             :param x: Molar fraction
-                """
+        """
+        n             = 10
+        tol           = 1e-15
+        E             = 1e-20
+        eta           = np.zeros(n)
+        P             = np.zeros(n + 1)
+        Eta0          = np.linspace(E, 0.8, num=n) #A depender da situação, alterar o valor
+        error         = 1
+        eta2          = np.zeros(n + 1)
+        intervals_P   = []
+        intervals_eta = []
+
+        # Newton's method
+        while error > tol:
+            for i, eta0 in enumerate(Eta0):
+                df     = self.dpdro(eta0, T, x, num_sites, code, association)
+                d2f    = self.d2pdro2(eta0, T, x, num_sites, code, association)
+                eta[i] = eta0 - (df / d2f)
+
+            error = sum(abs(eta - Eta0))
+            Eta0  = eta
+
+
+        for i in range(len(eta)):
+            P[i + 1] = self.pressure(eta[i], T, x, num_sites, code, association)
+        P[i + 1] = self.pressure(eta[i], T, x, num_sites, code, association)
+        eta2[1:n+1] = eta
+        eta2[0]     = -1.0
+        P[0]        = self.pressure(eta[0], T, x, num_sites, code, association)
+
+        # Finding intervals
+        for i in range(len(P)):
+            if i != 0:
+                if (P[i - 1] < Po < P[i]) or (P[i - 1] > Po > P[i]):
+                    intervals_P.append([P[i - 1], P[i]])
+                    intervals_eta.append([eta2[i - 1], eta2[i]])
+
+        # Finding roots (bisection)
+        eta1 = []
+        for _, int_eta in enumerate(intervals_eta):
+            error = 1
+            tol   = 1e-15
+            xa    = int_eta[0]
+            xb    = int_eta[1]
+            xro   = 120  # guess
+
+            while error > tol:
+                xr = (xa + xb) / 2
+                fa = self.pressure(xa, T, x, num_sites, code, association) - Po
+                fr = self.pressure(xr, T, x, num_sites, code, association) - Po
+                if fa * fr < 0:
+                    xb = xr
+                else:
+                    xa = xr
+                error = abs(xr - xro)
+                xro   = xr
+
+            eta1.append(xr)
+
+        # Removing negative values
+        eta = list(filter(lambda x: x > 0.0 and x < 0.999, eta1))
+
+        # Removing values next to 1
+        #eta = list(filter(lambda x: x < 0.9999, eta1))
+
+        # Choosing the correct root
+        if len(eta) == 1:
+            return eta[0]
+        else:
+            G_res = []
+
+            for _, e in enumerate(eta):
+                a_res = self.a_res(e, T, x, num_sites, code, association)
+                Z = self.compressibility(e, T, x, num_sites, code, association)
+                G_res.append(a_res + (Z - 1) - np.log(Z))
+
+            # Removing 'nan' values
+            G_res_new = [x for x in G_res if math.isnan(x) == False]
+            min_G_res = min(G_res_new)
+            Pos_min = G_res.index(min_G_res)
+
+            return eta[Pos_min]
+
+    """def roots(self, Po, T, x, num_sites, code, association):
+        
         n     = 60
         tol   = 1e-12
         E     = 1e-15
@@ -583,8 +670,7 @@ class PCSAFT:
             min_G_res = min(G_res_new)
             Pos_min = G_res.index(min_G_res)
 
-            return eta[Pos_min]
-
+            return eta[Pos_min]"""
 
     def density_to_eta(self, x, density):
 
@@ -1092,6 +1178,7 @@ class PCSAFT2:
         eta, T  = symbols('eta T')
 
         P       = self.pressure(num_sites, eta1, T1, x, code2, code1, association)
+
         dpdeta  = diff(P,eta).subs([(eta, eta1), (T, T1)])
         di      = self.sigma*(1-0.12*np.exp(-3*(self.Ek/T1)))
         detadro = ((math.pi/6)*self.Na*(sum(x*self.mi*(di**3))))*1e-30
@@ -1201,15 +1288,11 @@ resp       = SAFT.speed_of_sound(molar_mass, eta, T, x, num_sites, code, associa
 """
 
 
-
-
-
 ############################################# ÁGUA+CO2 ################################################
 #COMPOSIÇÕES BASEADAS DO TRABALHO: "Speeds of Sound in Binary Mixtures of Water and Carbon Dioxide at Temperatures from
 # 273 K to 313 K and at Pressures up to 50 MPa"
-
 R          = 8.314 #----------------------------------------------------------> J/K*mol
-T          = 273.16 #-----------------------------------------------------------> Temperature (K)
+T          = 273.19 #-----------------------------------------------------------> Temperature (K)
 sigma      = np.array([3.0007, 2.7852])  #--------------------------------------------> Diameter of molecule (A°)
 Ek         = np.array([366.51, 169.21]) #--------------------------------------------->
 mi         = np.array([1.0656, 2.0729]) #--------------------------------------------->
@@ -1227,7 +1310,8 @@ code       = [0,1,1,1,1,0] #--------------------------------------------------> 
 num_sites  = np.array([4, 0]) #--------------------------------------------------> Number of sites for each compound
 SAFT       = PCSAFT(R, T, sigma, Ek, mi, Eabk, Kab, Kij, A, B, C, D)
 eta        = SAFT.density_to_eta(x,density)
-resp       = SAFT.speed_of_sound(molar_mass, eta, T, x, num_sites, code, association=1)
+P          = 5.97e6
+resp       = SAFT.speed_of_sound(molar_mass, P, T, x, num_sites, code, association=0)
 
 
 """
