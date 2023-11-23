@@ -15,6 +15,8 @@ class Data:
     @staticmethod
     def data():
 
+        # These dataset were extract form the paper: Speeds of Sound in Binary Mixtures
+        #of Water and Carbon DIoxide at Temperatures from 273 K to 313 K and at Pressures up to 50 MPa (Table 5)
         T = np.array([273.17, 273.19, 273.20, 273.23, 273.14, 273.13, 273.13,
                       273.13, 273.13, 273.13, 273.13, 273.12, 273.13, 273.13,
                       273.13, 278.12, 278.19, 278.22, 278.19, 278.18, 278.14,
@@ -40,16 +42,19 @@ class Data:
                           1511.23])
 
         return T, P, u_exp
+
+
     @classmethod
     def ARD(cls):
 
-        R, sigma, Ek, mi, Eabk, Kab, Kij, x, A, B, C, D, molar_mass, density, code, num_sites = Parameters().parameters()
+        R, sigma, Ek, mi, Eabk, Kab, Kij, x, A, B, C, D, molar_mass, code, num_sites = Parameters().parameters()
         T, P, u_exp = cls.data()
         u_calc      = np.zeros(len(T))
         SAFT        = PCSAFT(R, sigma, Ek, mi, Eabk, Kab, Kij, A, B, C, D)
 
         for i in range(len(T)):
             u_calc[i] = SAFT.speed_of_sound(molar_mass, P[i], T[i], x, num_sites, code, association=0, specification=0)
+            print(f'u(experimental): {u_exp[i]:.2f} ------------------------- u(calculated): {u_calc[i]:.2f}')
 
         ARD = (100/len(T))*sum(abs((u_calc-u_exp)/u_exp))
 

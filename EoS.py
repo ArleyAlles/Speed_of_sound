@@ -17,6 +17,9 @@ class PCSAFT:
         - roots: Calculation of root (eta) using Newton's method plus bisection method
         - coef_fugacity: Fugacity coefficient in a specific phase
         - enthalpy: Residual enthalpy
+
+    OBS: The thermophysical properties were extracted from the paper: Second-Order Thermodynamic Derivative
+    Properties of Ionic Liquids from ePC-SAFT: The Effect of Partial Ionic Dissociation
     """
 
     def __init__(self, R, sigma, Ek, mi, eabk, kab, Kij, A, B, C, D):
@@ -429,12 +432,12 @@ class PCSAFT:
         :param T: temperature
         :param x: molar fraction
         """
-        dadt = self.dadt(eta, T, x, num_sites, code, association)
-        d2adt2 = self.d2adt2(eta, T, x, num_sites, code, association)
-        cv_res = (-self.R * d2adt2 * T ** 2) + (-2 * self.R * T * dadt)
+        dadt     = self.dadt(eta, T, x, num_sites, code, association)
+        d2adt2   = self.d2adt2(eta, T, x, num_sites, code, association)
+        cv_res   = (-self.R * d2adt2 * T ** 2) + (-2 * self.R * T * dadt)
         cp_ideal = sum(((self.A + (self.B * T) + (self.C * T ** 2) + (self.D / (T ** 2))) * self.R))
         cv_ideal = cp_ideal - self.R
-        cv = cv_ideal + cv_res
+        cv       = cv_ideal + cv_res
         return cv
 
     def cp(self, eta, T, x, num_sites, code, association):
@@ -476,9 +479,6 @@ class PCSAFT:
             print(f"Isocoric heat: {cv:.2f} J/mol*K")
             print(f"Isobaric heat: {cp:.2f} J/mol*K")
             print(f"Speed of sound: {u:.2f} m/s")
-
-        else:
-            print("... RUNNING ...")
 
         return u
 
