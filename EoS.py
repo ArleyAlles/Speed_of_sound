@@ -195,19 +195,19 @@ class PCSAFT:
         for i in range(num_comp):
             for j in range(num_comp):
                 if j >= i:
-                    dij = (di[i] * di[j]) / (di[i] + di[j])
-                    Pa = 1 / (1 - epsilon[3])
-                    Pb = 3 * dij
-                    Pc = epsilon[2] / ((1 - epsilon[3]) ** 2)
-                    Pd = 2 * dij ** 2
-                    Pe = (epsilon[2] ** 2) / ((1 - epsilon[3]) ** 3)
+                    dij     = (di[i] * di[j]) / (di[i] + di[j])
+                    Pa      = 1 / (1 - epsilon[3])
+                    Pb      = 3 * dij
+                    Pc      = epsilon[2] / ((1 - epsilon[3]) ** 2)
+                    Pd      = 2 * dij ** 2
+                    Pe      = (epsilon[2] ** 2) / ((1 - epsilon[3]) ** 3)
                     gij_seg = Pa + (Pb * Pc) + (Pd * Pe)
-                    eaibjk = (self.eabk[i] + self.eabk[j]) * 0.5
-                    Pa = math.sqrt(self.kab[i] * self.kab[j])
-                    Pb = math.sqrt(self.sigma[i] * self.sigma[j])
-                    Pc = 0.5 * (self.sigma[i] + self.sigma[j])
-                    kaibj = Pa * (Pb / Pc) ** 3
-                    Pa = np.exp(eaibjk / T) - 1
+                    eaibjk  = (self.eabk[i] + self.eabk[j]) * 0.5
+                    Pa      = math.sqrt(self.kab[i] * self.kab[j])
+                    Pb      = math.sqrt(self.sigma[i] * self.sigma[j])
+                    Pc      = 0.5 * (self.sigma[i] + self.sigma[j])
+                    kaibj   = Pa*(Pb/Pc)**3
+                    Pa      = np.exp(eaibjk / T) - 1
                     delta.append(gij_seg * (dij ** 3) * Pa * kaibj)
 
         # Creating vectors for combination sites
@@ -246,10 +246,10 @@ class PCSAFT:
                     matrix[i, j] = 0
 
         matrix_T = np.transpose(matrix)
-        Delta = matrix + matrix_T
+        Delta    = matrix + matrix_T
 
         # Initial guess for X
-        X = 0.1 * np.ones(sum(num_sites))
+        X = 0.01 * np.ones(sum(num_sites))
 
         # Calculation of molar density of molecules
         di = self.sigma * (1 - 0.12 * np.exp(-3 * (self.Ek / T)))
@@ -262,12 +262,15 @@ class PCSAFT:
 
         # Newton-Raphson method
         error = 1
-        tol = 1e-10
-        f = []
-
+        tol   = 1e-9
+        f     = []
+        ite   = 0
         while error > tol:
 
-            # Jacobian matrix
+            if ite > 500:
+                tol = 1e-4
+
+            #Jacobian matrix
             jacobian = np.zeros((row, column))
             for i in range(row):
                 for j in range(column):
@@ -290,7 +293,8 @@ class PCSAFT:
             # Actualization of X
             X_new = X_mod - np.dot(J_pseudo, F)
             error = sum((X_new - X_mod) ** 2)
-            X = np.reshape(X_new, (row,))
+            X     = np.reshape(X_new, (row,))
+            ite += 1
 
         # Association Helmholtz free energy
         a_association = 0
