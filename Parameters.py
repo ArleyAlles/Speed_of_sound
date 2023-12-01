@@ -47,8 +47,8 @@ class Parameters:
             x = np.array([0.9985, 0.0015])  # -----------------------------------------> Molar fraction
         else:
             raise TypeError("There is no such experimental points in this composition. The options are:\n"
-                            "x (H2O): 0.9882 ----------> set=0\n"
-                            "x (H2O): 0.9934 ----------> set=1\n"
-                            "x (H2O): 0.9985 ----------> set=2")
+                            "x (H2O): 0.9882 ----------> dataset=0\n"
+                            "x (H2O): 0.9934 ----------> dataset=1\n"
+                            "x (H2O): 0.9985 ----------> dataset=2")
 
         return R, sigma, Ek, mi, Eabk, Kab, Kij, x, A, B, C, D, molar_mass, code, num_sites

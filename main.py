@@ -19,11 +19,11 @@ Authors: Arley A. Cruz
     * The output of such code is the calculated speed of sound for each experimental point (P,T) and the
     Average Relative Deviation (ARD%)
 """
+
 from Data import Data
 from Parameters import Parameters
 
 dataset     = 0
-association = 0
+association = 1
 Parameters().parameters(dataset)
 Data().ARD(dataset=dataset, association=association)
-

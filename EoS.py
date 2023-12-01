@@ -619,13 +619,19 @@ class PCSAFT:
             :param code: list of labels for each pairwise association
             :param association: Use or not association contribution
         """
-        Mw = sum(x * molar_mass)
-        eta = self.roots(P, T, x, num_sites, code, association)
+
+        if association != 0 and association != 1:
+            raise TypeError("Please, select the correct option:\n"
+                            "association = 0 ------> don't use association contribution\n"
+                            "association = 1 ------> use association contribution")
+
+        Mw    = sum(x * molar_mass)
+        eta   = self.roots(P, T, x, num_sites, code, association)
         dpdro = self.dpdro(eta, T, x, num_sites, code, association)
-        cp = self.cp(eta, T, x, num_sites, code, association)
-        cv = self.cv(eta, T, x, num_sites, code, association)
+        cp    = self.cp(eta, T, x, num_sites, code, association)
+        cv    = self.cv(eta, T, x, num_sites, code, association)
         gamma = cp / cv
-        u = math.sqrt((gamma / Mw) * dpdro * 1e3)
+        u     = math.sqrt((gamma / Mw) * dpdro * 1e3)
 
         return u
 
