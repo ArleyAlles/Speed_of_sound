@@ -30,8 +30,8 @@ class PCSAFT:
         self.eabk  = eabk  # ------------------> Association energy (K)
         self.kab   = kab  # -------------------> Association volume (dimensionless)
         self.Kij   = Kij  # -------------------> Binary interaction parameters (dimensionless). Order for 3 comp. = [K01, K02, K12]
-        self.k     = 1.380649e-23  # --------> Boltzmann's constant (J.K-1)
-        self.Na    = 6.0221e+23  # ----------> Avogadro's number (mol-1)
+        self.k     = 1.380649e-23  # ----------> Boltzmann's constant (J.K-1)
+        self.Na    = 6.0221e+23  # ------------> Avogadro's number (mol-1)
 
         # Universal constants a = [[a00, a01, a02 ...], [a10, a11, a12 ...], [a20, a21, a22 ...]]
         self.a = np.array([[0.910563, 0.636128, 2.686135, -26.547362, 97.759209, -159.591541, 91.297774],
@@ -76,6 +76,7 @@ class PCSAFT:
         """
         * Hard-chain contribution
             :param eta: Reduced density
+            :param T: Temperature
             :param x: Molar fraction
         """
 
@@ -102,8 +103,8 @@ class PCSAFT:
     def a_disp(self, eta, T, x):
         """
         * Dispersion contribution
-            :param ro_molar: molar density of mixture
-            :param T: temperature
+            :param eta: Reduced density
+            :param T: Temperature
             :param x: Molar fraction
         """
         di = self.sigma * (1 - 0.12 * np.exp(-3 * (self.Ek / T)))
@@ -178,6 +179,9 @@ class PCSAFT:
 
             And so on ...
 
+        :param eta: Reduced density
+        :param T: Temperature
+        :param x: Molar fraction
         :param code: list of labels for each pairwise association
         :return: association strength for each combination
         """
@@ -224,7 +228,7 @@ class PCSAFT:
         """
         * Calculation of association Helmholtz free energy term, using successive substitution method.
             :param num_sites: number of sites for each component
-            :param ro_molar: molar density of mixture
+            :param eta: Reduced density
             :param T: temperature
             :param x: molar fraction of each component in the mixture
             :param code: list of labels for each pairwise association
@@ -308,10 +312,12 @@ class PCSAFT:
     def a_res(self, eta, T, x, num_sites, code, association):
         """
         * Helmholtz free energy for all contributions
-            :param ro_molar: molar density of mixture
+            :param eta: Reduced density
             :param T: temperature
             :param x: Molar fraction
-        :return:
+            :param num_sites: Number of sites for each component
+            :param code: list of labels for each pairwise association
+            :param association: Use or not association contribution
         """
         a_hc = self.a_hc(eta, T, x)
         a_disp = self.a_disp(eta, T, x)
@@ -327,9 +333,12 @@ class PCSAFT:
 
     def compressibility(self, eta, T, x, num_sites, code, association):
         """
-        Compressibility factor
-        :param ro: Total number density of spherical segments (for mixture)
-        :param x: Molar fraction
+        * Compressibility factor
+            :param eta: Reduced density
+            :param x: Molar fraction
+            :param num_sites: Number of sites for each component
+            :param code: list of labels for each pairwise association
+            :param association: Use or not association contribution
         """
         h = eta * 1e-6
         am_2 = self.a_res(eta - (2 * h), T, x, num_sites, code, association)
@@ -346,6 +355,9 @@ class PCSAFT:
         * Pressure of system
             :param eta: Reduced density
             :param x: Molar fraction
+            :param num_sites: Number of sites for each component
+            :param code: list of labels for each pairwise association
+            :param association: Use or not association contribution
         """
         Z = self.compressibility(eta, T, x, num_sites, code, association)
         di = self.sigma * (1 - 0.12 * np.exp(-3 * (self.Ek / T)))
@@ -357,9 +369,12 @@ class PCSAFT:
     def dpdro(self, eta, T, x, num_sites, code, association):
         """
         * First derivative of pressure by density
-        :param ro_molar: molar density
-        :param T: temperature
-        :param x: molar fraction
+            :param eta: Reduced density
+            :param T: temperature
+            :param x: molar fraction
+            :param num_sites: Number of sites for each component
+            :param code: list of labels for each pairwise association
+            :param association: Use or not association contribution
         """
         h = eta * 1e-7
         am_2 = self.pressure(eta - (2 * h), T, x, num_sites, code, association)
@@ -376,9 +391,12 @@ class PCSAFT:
     def dpdt(self, eta, T, x, num_sites, code, association):
         """
         * First derivative of pressure by temperature
-        :param ro_molar: molar density
-        :param T: temperature
-        :param x: molar fraction
+            :param eta: Reduced density
+            :param T: Temperature
+            :param x: Molar fraction
+            :param num_sites: Number of sites for each component
+            :param code: list of labels for each pairwise association
+            :param association: Use or not association contribution
         """
 
         h = T * 1e-7
@@ -397,9 +415,12 @@ class PCSAFT:
     def dadt(self, eta, T, x, num_sites, code, association):
         """
         * First derivative of pressure by temperature
-        :param ro_molar: molar density
-        :param T: temperature
-        :param x: molar fraction
+            :param eta: Reduced density
+            :param T: Temperature
+            :param x: molar fraction
+            :param num_sites: Number of sites for each component
+            :param code: list of labels for each pairwise association
+            :param association: Use or not association contribution
         """
 
         h = T * 1e-7
@@ -414,9 +435,12 @@ class PCSAFT:
     def d2adt2(self, eta, T, x, num_sites, code, association):
         """
         * Second derivative of Hemholtz free energy by temperature
-        :param ro_molar: molar density
-        :param T: temperature
-        :param x: molar fraction
+            :param eta: Reduced density
+            :param T: Temperature
+            :param x: Molar fraction
+            :param num_sites: Number of sites for each component
+            :param code: list of labels for each pairwise association
+            :param association: Use or not association contribution
         """
 
         h = T * 1e-7
@@ -429,65 +453,17 @@ class PCSAFT:
 
         return d2adt2
 
-    def cv(self, eta, T, x, num_sites, code, association):
-        """
-        Heat capacity at constant volume
-        :param ro_molar: molar density
-        :param T: temperature
-        :param x: molar fraction
-        """
-        dadt     = self.dadt(eta, T, x, num_sites, code, association)
-        d2adt2   = self.d2adt2(eta, T, x, num_sites, code, association)
-        cv_res   = (-self.R * d2adt2 * T ** 2) + (-2 * self.R * T * dadt)
-        cp_ideal = sum(((self.A + (self.B * T) + (self.C * T ** 2) + (self.D / (T ** 2))) * self.R))
-        cv_ideal = cp_ideal - self.R
-        cv       = cv_ideal + cv_res
-        return cv
-
-    def cp(self, eta, T, x, num_sites, code, association):
-        """
-        * Heat capacity at constant pressure
-        :param ro_molar: molar density
-        :param T: temperature
-        :param x: molar fraction
-        """
-        di = self.sigma * (1 - 0.12 * np.exp(-3 * (self.Ek / T)))
-        ro = (6 / math.pi) * eta * (sum(x * self.mi * (di ** 3))) ** -1
-        density = ro / (self.Na * 1e-30)
-        dpdt = self.dpdt(eta, T, x, num_sites, code, association)
-        dpdro = self.dpdro(eta, T, x, num_sites, code, association)
-        cp_ideal = sum((self.A + (self.B * T) + (self.C * T ** 2) + (self.D / (T ** 2))) * self.R)
-        Pa = T / (density ** 2)
-        cv = self.cv(eta, T, x, num_sites, code, association)
-        cp = cv + (Pa * ((dpdt ** 2) / dpdro))
-
-        return cp
-
-    def speed_of_sound(self, molar_mass, P, T, x, num_sites, code, association, specification=1):
-        """
-        Speed of sound
-        :param molar_mass: molar mass
-        :param ro_molar: molar density
-        :param T: temperature
-        :param x: molar fraction
-        """
-        Mw = sum(x * molar_mass)
-        eta = self.roots(P, T, x, num_sites, code, association)
-        dpdro = self.dpdro(eta, T, x, num_sites, code, association)
-        cp = self.cp(eta, T, x, num_sites, code, association)
-        cv = self.cv(eta, T, x, num_sites, code, association)
-        gamma = cp / cv
-        u = math.sqrt((gamma / Mw) * dpdro * 1e3)
-
-        if specification == 1:
-            print(f"Isocoric heat: {cv:.2f} J/mol*K")
-            print(f"Isobaric heat: {cp:.2f} J/mol*K")
-            print(f"Speed of sound: {u:.2f} m/s")
-
-        return u
-
     def d2pdro2(self, eta, T, x, num_sites, code, association):
+        """
 
+        :param eta:
+        :param T: Temperature
+        :param x: Molar fraction
+        :param num_sites: Number of sites for each component
+        :param code: list of labels for each pairwise association
+        :param association: Use or not association contribution
+        :return:
+        """
         h = 0.000001 * eta
         am_2 = self.dpdro(eta - (2 * h), T, x, num_sites, code, association)
         am2 = self.dpdro(eta + (2 * h), T, x, num_sites, code, association)
@@ -505,7 +481,11 @@ class PCSAFT:
             for finding the corrected roots (that one which minimizes Gibbs).
 
             :param Po: Pressure of system
+            :param T: Temperature
             :param x: Molar fraction
+            :param num_sites: Number of sites for each component
+            :param code: list of labels for each pairwise association
+            :param association: Use or not association contribution
         """
         n = 10
         tol = 1e-15
@@ -587,3 +567,65 @@ class PCSAFT:
             Pos_min = G_res.index(min_G_res)
 
             return eta[Pos_min]
+
+    def cv(self, eta, T, x, num_sites, code, association):
+        """
+        * Heat capacity at constant volume
+            :param eta: Reduced density
+            :param T: Temperature
+            :param x: Molar fraction
+            :param num_sites: Number of sites for each component
+            :param code: list of labels for each pairwise association
+            :param association: Use or not association contribution
+        """
+        dadt     = self.dadt(eta, T, x, num_sites, code, association)
+        d2adt2   = self.d2adt2(eta, T, x, num_sites, code, association)
+        cv_res   = (-self.R * d2adt2 * T ** 2) + (-2 * self.R * T * dadt)
+        cp_ideal = sum(((self.A + (self.B * T) + (self.C * T ** 2) + (self.D / (T ** 2))) * self.R))
+        cv_ideal = cp_ideal - self.R
+        cv       = cv_ideal + cv_res
+        return cv
+
+    def cp(self, eta, T, x, num_sites, code, association):
+        """
+        * Heat capacity at constant pressure
+            :param eta: Reduced density
+            :param T: Temperature
+            :param x: Molar fraction
+            :param num_sites: Number of sites for each component
+            :param code: list of labels for each pairwise association
+            :param association: Use or not association contribution
+        """
+        di = self.sigma * (1 - 0.12 * np.exp(-3 * (self.Ek / T)))
+        ro = (6 / math.pi) * eta * (sum(x * self.mi * (di ** 3))) ** -1
+        density = ro / (self.Na * 1e-30)
+        dpdt = self.dpdt(eta, T, x, num_sites, code, association)
+        dpdro = self.dpdro(eta, T, x, num_sites, code, association)
+        cp_ideal = sum((self.A + (self.B * T) + (self.C * T ** 2) + (self.D / (T ** 2))) * self.R)
+        Pa = T / (density ** 2)
+        cv = self.cv(eta, T, x, num_sites, code, association)
+        cp = cv + (Pa * ((dpdt ** 2) / dpdro))
+
+        return cp
+
+    def speed_of_sound(self, molar_mass, P, T, x, num_sites, code, association):
+        """
+        * Speed of sound
+            :param molar_mass: Molar mass
+            :param P: Pressure
+            :param T: Temperature
+            :param x: Molar fraction
+            :param num_sites: Number of sites for each component
+            :param code: list of labels for each pairwise association
+            :param association: Use or not association contribution
+        """
+        Mw = sum(x * molar_mass)
+        eta = self.roots(P, T, x, num_sites, code, association)
+        dpdro = self.dpdro(eta, T, x, num_sites, code, association)
+        cp = self.cp(eta, T, x, num_sites, code, association)
+        cv = self.cv(eta, T, x, num_sites, code, association)
+        gamma = cp / cv
+        u = math.sqrt((gamma / Mw) * dpdro * 1e3)
+
+        return u
+
